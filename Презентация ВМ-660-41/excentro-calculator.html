@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Подбор редуктора ВМ · ExCentro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ════ ExCentro engineering design tokens ════ */
+:root{
+  --bg:#0e1330; --surface:#161d40; --surface2:#1b234d; --offset:#131a3c;
+  --dynamic:#222c5c; --divider:#26305f; --border:#34406f;
+  --text:#e6ecff; --muted:#8fa0cf; --faint:#5c6aa0;
+  --primary:#4f9cf9; --primary-hover:#6fb0ff; --primary-hi:#1d2b57;
+  --success:#43c47d; --success-hi:#16351f;
+  --warning:#f0a330; --warning-hi:#3a2c15;
+  --error:#ef5b8c; --error-hi:#3a1c2a;
+  --gold:#e8c34a; --gold-hi:#352c12;
+  --blue:#4f9cf9; --blue-hi:#1d2b57;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+  --shadow-md:0 4px 14px rgba(0,0,0,.4);
+  --shadow-lg:0 14px 40px rgba(0,0,0,.5);
+  --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px; --radius-full:999px;
+  --font-display:'Inter',-apple-system,sans-serif;
+  --font-body:'Inter',-apple-system,sans-serif;
+  --font-mono:'IBM Plex Mono','SF Mono',monospace;
+  --text-xs:clamp(.72rem,.68rem + .2vw,.8rem);
+  --text-sm:clamp(.84rem,.8rem + .25vw,.94rem);
+  --text-base:clamp(.95rem,.9rem + .25vw,1.05rem);
+  --text-lg:clamp(1.1rem,1rem + .6vw,1.4rem);
+  --text-xl:clamp(1.4rem,1.1rem + 1.1vw,2rem);
+  --text-2xl:clamp(1.8rem,1.2rem + 2.2vw,3rem);
+  --space-1:.25rem;--space-2:.5rem;--space-3:.75rem;--space-4:1rem;
+  --space-5:1.25rem;--space-6:1.5rem;--space-8:2rem;--space-10:2.5rem;
+  --space-12:3rem;--space-16:4rem;
+  --transition:160ms cubic-bezier(.16,1,.3,1);
+}
+[data-theme="light"]{
+  --bg:#eef2f9; --surface:#ffffff; --surface2:#f6f9fe; --offset:#e8eef7;
+  --dynamic:#dde6f4; --divider:#d7dfee; --border:#c4cfe4;
+  --text:#10153d; --muted:#5a6a94; --faint:#9aa6c4;
+  --primary:#155bc4; --primary-hover:#0d4aa8; --primary-hi:#e0ecff;
+  --success:#1f8a4c; --success-hi:#d8f0e0;
+  --warning:#c2700c; --warning-hi:#f6e9d2;
+  --error:#c23b6a; --error-hi:#f6dde7;
+  --shadow-sm:0 1px 2px rgba(16,21,61,.06);
+  --shadow-md:0 4px 12px rgba(16,21,61,.08);
+  --shadow-lg:0 12px 32px rgba(16,21,61,.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{font-family:var(--font-body);font-size:var(--text-base);color:var(--text);background:var(--bg);min-height:100dvh;line-height:1.6}
+img,svg{display:block;max-width:100%}
+input,select,button{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+a,button,[role="button"],input,select{transition:color var(--transition),background var(--transition),border-color var(--transition),box-shadow var(--transition)}
+/* numerics in mono for the engineering feel */
+.kpi-value,.spec-val,.data-table td,.field input{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.app-header{background:var(--surface);border-bottom:1px solid var(--divider);padding:var(--space-4) var(--space-6);display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:var(--space-3)}
+.logo-svg{width:36px;height:36px;flex-shrink:0;color:var(--primary)}
+.logo-text{font-family:var(--font-display);font-size:var(--text-lg);font-weight:700;letter-spacing:-.01em}
+.logo-text span{color:var(--primary)}
+.logo-sub{font-size:var(--text-xs);color:var(--faint);font-family:var(--font-mono);letter-spacing:.04em}
+.header-actions{display:flex;align-items:center;gap:var(--space-3)}
+.header-back{font-size:var(--text-sm);color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius-md)}
+.header-back:hover{background:var(--offset);color:var(--text)}
+.theme-btn{width:40px;height:40px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;color:var(--muted);border:1px solid var(--border)}
+.theme-btn:hover{background:var(--offset);color:var(--text)}
+.main{max-width:1140px;margin:0 auto;padding:var(--space-8) var(--space-6) var(--space-16)}
+.intro{margin-bottom:var(--space-6)}
+.intro h1{font-family:var(--font-display);font-size:var(--text-xl);font-weight:700;letter-spacing:-.01em;margin-bottom:6px}
+.intro p{color:var(--muted);font-size:var(--text-sm);max-width:760px}
+.steps-nav{display:flex;gap:0;margin-bottom:var(--space-8);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.step-tab{flex:1;padding:var(--space-3) var(--space-4);text-align:center;font-size:var(--text-sm);font-weight:600;color:var(--muted);background:var(--surface);border-right:1px solid var(--border);transition:all var(--transition);cursor:pointer}
+.step-tab:last-child{border-right:none}
+.step-tab.active{background:var(--primary);color:#fff}
+.step-tab.done{background:var(--success-hi);color:var(--success)}
+.step-tab:hover:not(.active){background:var(--offset);color:var(--text)}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:currentColor;color:var(--surface);font-family:var(--font-mono);font-size:.72rem;font-weight:600;margin-right:var(--space-2);opacity:.75}
+.step-tab.active .step-num{background:rgba(255,255,255,.25);color:#fff;opacity:1}
+.step-panel{display:none}
+.step-panel.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:var(--space-6);box-shadow:var(--shadow-sm)}
+.card+.card{margin-top:var(--space-5)}
+.card-title{font-family:var(--font-display);font-size:var(--text-lg);font-weight:700;margin-bottom:var(--space-4);color:var(--text);display:flex;align-items:center;gap:var(--space-2)}
+.card-title .icon{width:22px;height:22px;color:var(--primary);flex-shrink:0}
+.section-title{font-family:var(--font-mono);font-size:var(--text-xs);font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:var(--space-4);margin-top:var(--space-6);padding-bottom:var(--space-2);border-bottom:1px solid var(--divider)}
+.section-title:first-child{margin-top:0}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:var(--space-5)}
+.field{display:flex;flex-direction:column;gap:var(--space-2)}
+.field label{font-size:var(--text-sm);font-weight:500;color:var(--muted)}
+.field label span{color:var(--primary);margin-left:2px}
+.field input,.field select{padding:var(--space-3) var(--space-4);border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface2);color:var(--text);font-size:var(--text-base);outline:none}
+.field select{font-family:var(--font-body)}
+.field input:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in oklab,var(--primary) 25%,transparent)}
+.field .hint{font-size:var(--text-xs);color:var(--faint);font-family:var(--font-mono)}
+.field-full{grid-column:1/-1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);padding:var(--space-3) var(--space-6);border-radius:var(--radius-md);font-size:var(--text-sm);font-weight:600;border:1px solid transparent;transition:all var(--transition);min-height:44px}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn-primary:hover{background:var(--primary-hover);border-color:var(--primary-hover)}
+.btn-ghost{background:transparent;color:var(--muted);border-color:var(--border)}
+.btn-ghost:hover{background:var(--offset);color:var(--text)}
+.btn-actions{display:flex;gap:var(--space-3);flex-wrap:wrap;margin-top:var(--space-6);align-items:center}
+.result-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:var(--space-4);margin-bottom:var(--space-5)}
+.result-kpi{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5)}
+.kpi-label{font-family:var(--font-mono);font-size:var(--text-xs);font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:var(--space-1)}
+.kpi-value{font-size:var(--text-xl);font-weight:600;line-height:1.1;color:var(--text)}
+.kpi-sub{font-size:var(--text-xs);color:var(--faint);margin-top:var(--space-1);font-family:var(--font-mono)}
+.kpi-good{color:var(--success)} .kpi-warn{color:var(--warning)} .kpi-bad{color:var(--error)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:600}
+.badge-ok{background:var(--success-hi);color:var(--success)}
+.badge-warn{background:var(--warning-hi);color:var(--warning)}
+.badge-err{background:var(--error-hi);color:var(--error)}
+.badge-info{background:var(--primary-hi);color:var(--primary)}
+.badge-gold{background:var(--gold-hi);color:var(--gold)}
+.data-table{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
+.data-table th{text-align:left;padding:var(--space-2) var(--space-3);font-family:var(--font-mono);font-size:var(--text-xs);font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);border-bottom:1px solid var(--divider)}
+.data-table td{padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--divider);color:var(--muted)}
+.data-table tr.highlight td{background:color-mix(in oklab,var(--primary) 14%,transparent);color:var(--text);font-weight:600}
+.data-table td:first-child{font-weight:500;color:var(--text);font-family:var(--font-body)}
+.alert{padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);font-size:var(--text-sm);display:flex;gap:var(--space-3);align-items:flex-start;margin-bottom:var(--space-4)}
+.alert-warn{background:var(--warning-hi);color:var(--warning);border:1px solid color-mix(in oklab,var(--warning) 30%,transparent)}
+.alert-ok{background:var(--success-hi);color:var(--success);border:1px solid color-mix(in oklab,var(--success) 30%,transparent)}
+.alert-info{background:var(--primary-hi);color:var(--primary);border:1px solid color-mix(in oklab,var(--primary) 30%,transparent)}
+.coupling-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--space-5);margin-bottom:var(--space-4)}
+.coupling-card.recommended{border-color:var(--primary);background:color-mix(in oklab,var(--primary) 10%,var(--surface2))}
+.coupling-name{font-family:var(--font-display);font-size:var(--text-lg);font-weight:700;margin-bottom:var(--space-1)}
+.coupling-type{font-family:var(--font-mono);font-size:var(--text-xs);font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:var(--space-3)}
+.coupling-specs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--space-3)}
+.spec-item{display:flex;flex-direction:column;gap:2px}
+.spec-label{font-size:var(--text-xs);color:var(--faint)}
+.spec-val{font-size:var(--text-sm);font-weight:600;color:var(--text)}
+.coupling-pros{margin-top:var(--space-3);display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.pros-tag{font-size:var(--text-xs);padding:2px 8px;border-radius:var(--radius-full);background:var(--offset);color:var(--muted)}
+.coupling-diagram{background:var(--offset);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--space-4);margin-bottom:var(--space-4);overflow-x:auto}
+.coupling-diagram svg{width:100%;max-width:640px;height:auto;display:block;margin:0 auto}
+.progress-bar-wrap{background:var(--offset);border-radius:var(--radius-full);height:8px;overflow:hidden;margin-top:var(--space-2)}
+.progress-bar-fill{height:100%;border-radius:var(--radius-full);background:var(--primary);transition:width .6s cubic-bezier(.16,1,.3,1)}
+.progress-bar-fill.good{background:var(--success)}
+.progress-bar-fill.warn{background:var(--warning)}
+.progress-bar-fill.bad{background:var(--error)}
+.hidden{display:none!important}
+.results-block{display:none}
+.results-block.visible{display:block}
+.app-footer{max-width:1140px;margin:0 auto;padding:var(--space-6);border-top:1px solid var(--divider);color:var(--faint);font-size:var(--text-xs);font-family:var(--font-mono);text-align:center;line-height:1.7}
+.app-footer a{color:var(--muted);text-decoration:none}
+.app-footer a:hover{color:var(--primary)}
+@media(max-width:640px){
+  .app-header{padding:var(--space-3) var(--space-4)}
+  .main{padding:var(--space-5) var(--space-4) var(--space-12)}
+  .steps-nav{flex-direction:column}
+  .step-tab{border-right:none;border-bottom:1px solid var(--border);text-align:left}
+  .step-tab:last-child{border-bottom:none}
+  .logo-sub{display:none}
+}
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="logo">
+    <svg class="logo-svg" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ExCentro">
+      <circle cx="18" cy="18" r="17" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+      <circle cx="18" cy="18" r="11" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
+      <circle cx="18" cy="18" r="5" fill="currentColor" opacity="0.9"/>
+      <circle cx="18" cy="6" r="2.5" fill="currentColor"/>
+      <circle cx="18" cy="30" r="2.5" fill="currentColor"/>
+      <circle cx="6" cy="18" r="2.5" fill="currentColor"/>
+      <circle cx="30" cy="18" r="2.5" fill="currentColor"/>
+    </svg>
+    <div>
+      <div class="logo-text">ExCentro <span>ВМ</span></div>
+      <div class="logo-sub">ИНЖЕНЕРНЫЙ ПОДБОР РЕДУКТОРА</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <a class="header-back" href="excentro-vm660-ru.html">← К презентации</a>
+    <button class="theme-btn" data-theme-toggle aria-label="Переключить тему">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</header>
+<main class="main">
+  <div class="intro">
+    <h1>Предварительный подбор редукторного модуля ВМ</h1>
+    <p>Введите кинематические параметры привода — инструмент подберёт типоразмер серии ВМ, проверит запас по моменту и ресурсу, рассчитает соединительную муфту и сформирует отчёт для запроса ТКП.</p>
+  </div>
+<nav class="steps-nav" role="tablist">
+<button class="step-tab active" role="tab" onclick="goStep(1)" id="tab1"><span class="step-num">1</span>Параметры привода</button>
+<button class="step-tab" role="tab" onclick="goStep(2)" id="tab2"><span class="step-num">2</span>Подбор редуктора</button>
+<button class="step-tab" role="tab" onclick="goStep(3)" id="tab3"><span class="step-num">3</span>Расчёт муфты</button>
+</nav>
+
+<div class="step-panel active" id="panel1">
+<div class="card">
+<h2 class="card-title">
+<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+Кинематические параметры
+</h2>
+<div class="form-grid">
+<div class="field"><label>Крутящий момент T₂ на выходе<span>*</span></label><input type="number" id="t2" placeholder="100" min="0.5" max="1500" step="0.1"><span class="hint">кНм — момент на тихоходном валу</span></div>
+<div class="field"><label>Частота вращения n₁ (вход)<span>*</span></label><input type="number" id="n1" placeholder="7000" min="100" max="10000" step="10"><span class="hint">об/мин — двигатель / турбина</span></div>
+<div class="field"><label>Передаточное число i</label><input type="number" id="ratio" placeholder="50" min="5" max="200" step="1"><span class="hint">оставьте пустым — рассчитается по n₁ и n₂</span></div>
+<div class="field"><label>Частота вращения n₂ (выход)</label><input type="number" id="n2" placeholder="140" min="1" max="3000" step="1"><span class="hint">об/мин — рабочий орган</span></div>
+</div>
+<div class="section-title">Эксплуатационные условия</div>
+<div class="form-grid">
+<div class="field"><label>Отрасль<span>*</span></label><select id="industry">
+<option value="">— выберите —</option>
+<option value="agro">Агросектор / АПК</option>
+<option value="oilgas">Нефтегаз наземный</option>
+<option value="offshore">Нефтегаз морской / шельф</option>
+<option value="mining">Горное оборудование</option>
+<option value="chem">Нефтехимия / реакторы</option>
+<option value="wind">Ветроэнергетика (ВЭУ)</option>
+<option value="general">Общепром / конвейеры</option>
+</select></div>
+<div class="field"><label>Тип нагрузки<span>*</span></label><select id="load_type">
+<option value="uniform">Равномерная (без ударов)</option>
+<option value="mild">Лёгкие удары (Ku ×1.25)</option>
+<option value="moderate">Умеренные удары (Ku ×1.5)</option>
+<option value="heavy">Тяжёлые удары (Ku ×2.0)</option>
+</select></div>
+<div class="field"><label>Требуемый ресурс</label><input type="number" id="lifetime" placeholder="50000" min="1000" max="200000" step="1000"><span class="hint">часов — L10h для подшипников</span></div>
+<div class="field"><label>Рабочая температура</label><select id="temp">
+<option value="standard">Стандартная: −20…+60°C</option>
+<option value="cold">Холодный климат: −45…+40°C</option>
+<option value="hot">Горячий цех: +20…+100°C</option>
+<option value="arctic">Арктика: −60…+20°C</option>
+</select></div>
+</div>
+<div class="section-title">Мощность двигателя (для расчёта муфты)</div>
+<div class="form-grid">
+<div class="field"><label>Мощность двигателя P<span>*</span></label><input type="number" id="power" placeholder="250" min="1" max="5000" step="1"><span class="hint">кВт — установленная мощность</span></div>
+<div class="field"><label>Тип двигателя</label><select id="motor_type">
+<option value="ac_std">АД стандартный (Кп=6,5)</option>
+<option value="ac_freq">АД с ПЧ (Кп=2,5)</option>
+<option value="pmsm">СДПМ / BLDC (Кп=3,0)</option>
+<option value="dc">Двигатель постоянного тока (Кп=2,0)</option>
+<option value="hyd">Гидромотор (Кп=1,8)</option>
+</select></div>
+<div class="field"><label>Диаметр вала двигателя d₁</label><input type="number" id="d_motor" placeholder="100" min="20" max="400" step="5"><span class="hint">мм — по каталогу двигателя</span></div>
+<div class="field"><label>Диаметр входного вала редуктора d₂</label><input type="number" id="d_reducer" placeholder="100" min="20" max="400" step="5"><span class="hint">мм — по КД ВМ-серии</span></div>
+</div>
+<div class="btn-actions">
+<button class="btn btn-primary" onclick="calcAll()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 3l14 9-14 9V3z"/></svg>Рассчитать</button>
+<button class="btn btn-ghost" onclick="resetAll()">Сбросить</button>
+</div>
+</div>
+</div>
+
+<div class="step-panel" id="panel2">
+<div class="results-block" id="results2"></div>
+<div id="results2-empty" class="card" style="text-align:center;padding:var(--space-12)"><p style="color:var(--muted)">Заполните параметры на Шаге 1 и нажмите «Рассчитать»</p></div>
+</div>
+
+<div class="step-panel" id="panel3">
+<div class="results-block" id="results3"></div>
+<div id="results3-empty" class="card" style="text-align:center;padding:var(--space-12)"><p style="color:var(--muted)">Выполните расчёт на Шаге 1 — данные муфты будут рассчитаны автоматически</p></div>
+</div>
+</main>
+
+<footer class="app-footer">
+ООО «РУСМАШ» · ИНН 7706418586 · 119607, г. Москва, ул. Удальцова, д. 50, кв. 73<br>
+<a href="mailto:info@rusmashgroup.ru">info@rusmashgroup.ru</a> · <a href="https://rusmashgroup.ru">rusmashgroup.ru</a> · <a href="https://ec-gearing.ru">ec-gearing.ru</a> · +7 (926) 235-35-39<br>
+Предварительный инженерный расчёт — не является конструкторской документацией
+</footer>
+
+<script>
+function exportReportPDF(){
+if(!window.lastResults){alert('Сначала выполните расчёт на Шаге 1');return;}
+const r=window.lastResults;
+const s=(v,d=1)=>(v!=null&&!isNaN(v))?Number(v).toLocaleString('ru-RU',{maximumFractionDigits:d}):'—';
+const win=window.open('','_blank');
+win.document.write(`<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Отчёт подбора ВМ · ExCentro</title>
+<style>
+body{font-family:Arial,sans-serif;margin:15mm;color:#10153d;font-size:11pt}
+.hdr{background:#10153d;color:#fff;padding:14px 22px;margin:-15mm -15mm 20px -15mm;display:flex;align-items:center;gap:16px}
+.hdr-logo{font-size:24pt;font-weight:900;letter-spacing:4px;color:#fff}
+.hdr-logo span{color:#4f9cf9}
+.hdr-sub{font-size:9pt;color:#9fb2dd;margin-top:4px}
+h2{color:#10153d;font-size:12pt;border-left:4px solid #4f9cf9;padding-left:8px;margin-top:18px}
+table{width:100%;border-collapse:collapse;margin:8px 0 14px}
+td{padding:5px 10px;border:1px solid #d7dfee;font-size:10pt}
+td:first-child{background:#f3f6fc;font-weight:bold;width:55%}
+.meta{color:#888;font-size:9pt;margin-bottom:16px}
+.footer{margin-top:24px;border-top:1px solid #ccc;padding-top:8px;font-size:9pt;color:#888;text-align:center}
+@media print{body{margin:10mm}.hdr{margin:-10mm -10mm 16px -10mm}}
+</style></head><body>
+<div class="hdr"><div>
+<div class="hdr-logo">Ex<span>Centro</span> · РУСМАШ</div>
+<div class="hdr-sub">ООО «РУСМАШ» · ИНН 7706418586 · rusmashgroup.ru · ec-gearing.ru · +7 (926) 235-35-39</div>
+</div></div>
+<h1 style="font-size:14pt;margin:0 0 4px">Отчёт предварительного подбора редукторного модуля серии ВМ</h1>
+<div class="meta">Сформирован: ${new Date().toLocaleString('ru-RU')} &nbsp;|&nbsp; Инструмент подбора ExCentro ВМ</div>
+<h2>Шаг 1 — Входные параметры</h2>
+<table>
+<tr><td>Отрасль</td><td>${r.industry||getIndName(r.ind)||'—'}</td></tr>
+<tr><td>Крутящий момент T₂</td><td>${s(r.t2)} кНм</td></tr>
+<tr><td>Частота вращения n₁</td><td>${s(r.n1,0)} об/мин</td></tr>
+<tr><td>Передаточное число i</td><td>${s(r.i,0)}</td></tr>
+<tr><td>Коэффициент ударности Ku</td><td>${s(r.ku,2)}</td></tr>
+<tr><td>Требуемый ресурс</td><td>${s(r.life,0)} ч</td></tr>
+</table>
+<h2>Шаг 2 — Подобранный редукторный модуль</h2>
+<table>
+<tr><td>Типоразмер</td><td><b>${r.vm?r.vm.name:'—'}</b></td></tr>
+<tr><td>Расчётный момент T₂d</td><td>${s(r.t2_design)} кНм</td></tr>
+<tr><td>Коэффициент запаса Ks</td><td>${s(r.ks,2)}</td></tr>
+<tr><td>Выходная частота n₂</td><td>${s(r.n2,1)} об/мин</td></tr>
+<tr><td>Масса</td><td>${r.vm?s(r.vm.mass,0):'—'} кг</td></tr>
+<tr><td>Класс защиты IP</td><td>${r.ip||'—'}</td></tr>
+<tr><td>Рекомендованная смазка</td><td>${r.lube||'—'}</td></tr>
+<tr><td>Расчётный ресурс L10h</td><td>${s(r.l10_est,0)} ч</td></tr>
+</table>
+<h2>Шаг 3 — Соединительная муфта</h2>
+<table>
+<tr><td>Тип двигателя</td><td>${MOTOR_NAMES[r.mtype]||'—'}</td></tr>
+<tr><td>Мощность двигателя P</td><td>${s(r.power,0)} кВт</td></tr>
+</table>
+<div class="footer">
+ООО «РУСМАШ» · 119607, г. Москва, ул. Удальцова, д. 50, кв. 73 · info@rusmashgroup.ru · +7 (926) 235-35-39<br>
+<b>Предварительный инженерный расчёт — не является конструкторской документацией</b>
+</div>
+</body></html>`);
+win.document.close();
+setTimeout(()=>{win.focus();win.print();},600);
+}
+window.exportReportPDF=exportReportPDF;
+
+const VM_SERIES=[
+{name:'ВМ-100',d:100,t2_max:0.8,t2_nom:0.65,iec:'IEC71',pcd:80,mass:4,l_min:100,l_max:160},
+{name:'ВМ-125',d:125,t2_max:1.8,t2_nom:1.4,iec:'IEC90',pcd:100,mass:7,l_min:120,l_max:200},
+{name:'ВМ-160',d:160,t2_max:3.5,t2_nom:2.8,iec:'IEC112',pcd:130,mass:14,l_min:140,l_max:240},
+{name:'ВМ-200',d:200,t2_max:7.5,t2_nom:6.0,iec:'IEC132',pcd:160,mass:25,l_min:180,l_max:300},
+{name:'ВМ-250',d:250,t2_max:15,t2_nom:12,iec:'IEC180',pcd:200,mass:45,l_min:220,l_max:380},
+{name:'ВМ-315',d:315,t2_max:30,t2_nom:24,iec:'IEC200',pcd:250,mass:80,l_min:280,l_max:480},
+{name:'ВМ-400',d:400,t2_max:60,t2_nom:48,iec:'IEC280',pcd:320,mass:150,l_min:350,l_max:600},
+{name:'ВМ-500',d:500,t2_max:100,t2_nom:80,iec:'IEC315',pcd:400,mass:280,l_min:440,l_max:750},
+{name:'ВМ-580',d:580,t2_max:160,t2_nom:139,iec:'IEC355',pcd:580,mass:560,l_min:520,l_max:880},
+{name:'ВМ-700',d:700,t2_max:250,t2_nom:200,iec:'IEC400',pcd:700,mass:850,l_min:630,l_max:1060},
+{name:'ВМ-850',d:850,t2_max:400,t2_nom:350,iec:'IEC500',pcd:850,mass:1400,l_min:760,l_max:1280},
+];
+const KU_MATRIX={
+agro:{uniform:3.0,mild:3.75,moderate:4.5,heavy:5.0},
+oilgas:{uniform:1.6,mild:2.0,moderate:2.4,heavy:3.2},
+offshore:{uniform:1.8,mild:2.2,moderate:2.8,heavy:3.5},
+mining:{uniform:1.5,mild:2.0,moderate:2.5,heavy:3.0},
+chem:{uniform:1.4,mild:1.75,moderate:2.1,heavy:2.8},
+wind:{uniform:1.4,mild:1.6,moderate:2.0,heavy:2.5},
+general:{uniform:1.25,mild:1.5,moderate:2.0,heavy:2.5},
+};
+const LIFETIME_BASE={agro:3000,oilgas:50000,offshore:50000,mining:40000,chem:60000,wind:175000,general:25000};
+const IP_MIN={agro:'IP67',oilgas:'IP65',offshore:'IP68',mining:'IP65',chem:'IP65',wind:'IP54',general:'IP54'};
+const LUBE={
+standard:{uniform:'ISO VG 220 (PAO)',mild:'ISO VG 320 (PAO)',moderate:'ISO VG 460 (EP)',heavy:'ISO VG 680 (EP+MoS₂)'},
+cold:{uniform:'ISO VG 100 (синт.)',mild:'ISO VG 150 (PAO)',moderate:'ISO VG 220 (PAO)',heavy:'ISO VG 320 (PAO)'},
+hot:{uniform:'ISO VG 460 (EP)',mild:'ISO VG 680 (EP)',moderate:'ISO VG 680 (EP+MoS₂)',heavy:'ISO VG 1000 (EP+MoS₂)'},
+arctic:{uniform:'ISO VG 68 (синт.)',mild:'ISO VG 100 (PAO)',moderate:'ISO VG 150 (PAO)',heavy:'ISO VG 220 (PAO)'},
+};
+const MOTOR_KP={ac_std:6.5,ac_freq:2.5,pmsm:3.0,dc:2.0,hyd:1.8};
+const MOTOR_NAMES={ac_std:'АД стандартный',ac_freq:'АД с ПЧ',pmsm:'СДПМ / BLDC',dc:'ДПТ',hyd:'Гидромотор'};
+
+const COUPLING_TYPES=[
+{id:'elastic_pin',name:'Муфта упругая втулочно-пальцевая (МУВП)',standard:'ГОСТ 21424-93',type:'упругая',ku_max:2.5,temp:[-30,80],misalign_radial:0.6,misalign_angular:1.5,damping:'высокое',pros:['Низкая стоимость','Гашение ударов','Простой монтаж','Стандартные размеры ГОСТ'],cons:['Замена упругих элементов','Ограниченная угловая несоосность'],industries:['agro','general','chem'],t2_range:[0,200],note:'Оптимальна при Ku < 2,5. Обязательна замена пальцев через 8 000–10 000 ч.'},
+{id:'disc',name:'Муфта дисковая (пластинчатая)',standard:'DIN 740 / API 671',type:'жёсткая компенсирующая',ku_max:2.0,temp:[-50,200],misalign_radial:0.2,misalign_angular:0.5,damping:'низкое',pros:['Безлюфтовая','Высокая точность','-50…+200°C','API 671 нефтегаз'],cons:['Требует точного центрирования','Дорогостоящая'],industries:['oilgas','offshore','chem','wind'],t2_range:[0,500],note:'Требует лазерного центрирования (TIR ≤ 0,05 мм). Срок службы 50 000 ч без обслуживания.'},
+{id:'gear',name:'Муфта зубчатая',standard:'ГОСТ 5006-94 / DIN 6885',type:'жёсткая компенсирующая',ku_max:5.0,temp:[-40,120],misalign_radial:0.5,misalign_angular:1.0,damping:'низкое',pros:['Высокий момент','Компактность','Ударостойкость','Агро / горная техника'],cons:['Требует смазки','Износ зубьев при перекосе'],industries:['agro','mining','oilgas','general'],t2_range:[5,800],note:'При ударной нагрузке Ku > 3 — обязательна закалка зубьев HRC 52–58. Смазка — консистентная Mobilgrease XHP 222.'},
+{id:'jaw',name:'Муфта кулачково-дисковая (тип «паук»)',standard:'ISO 9409 / DIN 740-2',type:'упругая',ku_max:3.5,temp:[-30,90],misalign_radial:1.0,misalign_angular:1.0,damping:'среднее',pros:['Компенсирует несоосность до 1 мм','Электроизоляция','Без смазки','Бесшумная'],cons:['Замена эластомерного элемента','Ограниченный момент'],industries:['general','chem','wind'],t2_range:[0,150],note:'Эластомер: Shore A70 (стандарт) / Shore A98 (для ударных нагрузок). Замена через 12 000–15 000 ч.'},
+{id:'hydraulic',name:'Гидравлическая муфта (гидродинамическая)',standard:'ISO 7319',type:'гидродинамическая',ku_max:1.5,temp:[-20,100],misalign_radial:1.5,misalign_angular:2.0,damping:'максимальное',pros:['Мягкий пуск','Ограничение момента','Гашение пусковых ударов','Горная / конвейеры'],cons:['КПД ~97%','Масло в системе','Высокая стоимость'],industries:['mining','oilgas','general'],t2_range:[50,1500],note:'Рекомендована при тяжёлом пуске конвейеров, мельниц, дробилок. Скольжение при разгоне ~3–5%.'},
+{id:'cardan',name:'Карданный вал (промежуточный)',standard:'ГОСТ 14195-2014',type:'карданный',ku_max:4.0,temp:[-60,80],misalign_radial:50,misalign_angular:6.0,damping:'низкое',pros:['Угол до 6°','Осевое расстояние до 3 м','Арктика -60°C','Мобильная техника'],cons:['Дисбаланс при высоких оборотах','Периодическая смазка ШРУСов'],industries:['agro','mining','general'],t2_range:[5,300],note:'При n₁ > 1500 об/мин — динамическая балансировка обязательна (G6.3 по ISO 1940). Макс. угол 6° при n₁ ≤ 600 об/мин.'},
+];
+
+let calcResult=null;
+
+function calcAll(){
+const t2=parseFloat(document.getElementById('t2').value);
+const n1=parseFloat(document.getElementById('n1').value);
+const n2v=parseFloat(document.getElementById('n2').value);
+const rav=parseFloat(document.getElementById('ratio').value);
+const ind=document.getElementById('industry').value;
+const lt=document.getElementById('load_type').value;
+const life=parseFloat(document.getElementById('lifetime').value)||LIFETIME_BASE[ind]||25000;
+const temp=document.getElementById('temp').value;
+const power=parseFloat(document.getElementById('power').value);
+const mtype=document.getElementById('motor_type').value;
+const dMot=parseFloat(document.getElementById('d_motor').value);
+const dRed=parseFloat(document.getElementById('d_reducer').value);
+if(!t2||!n1||!ind){alert('Заполните обязательные поля: T₂, n₁, Отрасль');return;}
+let i_calc=rav||(n2v?n1/n2v:50);
+let n2_calc=n1/i_calc;
+const ku=KU_MATRIX[ind]?.[lt]||1.5;
+const t2_design=t2*ku;
+const selected=VM_SERIES.filter(v=>v.t2_max>=t2_design);
+const vm=selected.length>0?selected[0]:VM_SERIES[VM_SERIES.length-1];
+const vm_next=VM_SERIES[VM_SERIES.indexOf(vm)+1];
+const ks=vm.t2_max/t2_design;
+const l10_est=Math.round((vm.t2_max/t2)*50000*0.6);
+const lube=LUBE[temp]?.[lt]||'ISO VG 320';
+const ip=IP_MIN[ind]||'IP54';
+const p_check=power?(t2*n2_calc*2*Math.PI/60/1000).toFixed(1):null;
+calcResult={t2,n1,n2:n2_calc,i:i_calc,ku,t2_design,vm,vm_next,ks,l10_est,life,lube,ip,ind,lt,temp,power,mtype,dMot,dRed,p_check};
+window.lastResults=calcResult;
+renderStep2(calcResult);renderStep3(calcResult);goStep(2);
+}
+
+function renderStep2(r){
+const ksColor=r.ks>=1.5?'kpi-good':r.ks>=1.2?'kpi-warn':'kpi-bad';
+const ksClass=r.ks>=1.5?'badge-ok':r.ks>=1.2?'badge-warn':'badge-err';
+const l10Color=r.l10_est>=r.life?'kpi-good':'kpi-bad';
+const l10Cls=r.l10_est>=r.life?'good':'bad';
+const nearby=VM_SERIES.slice(Math.max(0,VM_SERIES.indexOf(r.vm)-1),Math.min(VM_SERIES.length,VM_SERIES.indexOf(r.vm)+3));
+const html=`<div class="card">
+<h2 class="card-title"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Рекомендованный типоразмер: <strong style="color:var(--primary);margin-left:8px">${r.vm.name}</strong></h2>
+<div class="result-grid">
+<div class="result-kpi"><div class="kpi-label">Расчётный момент T₂d</div><div class="kpi-value">${r.t2_design.toFixed(1)} <span style="font-size:var(--text-sm)">кНм</span></div><div class="kpi-sub">T₂ × Ku(${r.ku}) = ${r.t2} × ${r.ku}</div></div>
+<div class="result-kpi"><div class="kpi-label">Коэф. запаса Ks</div><div class="kpi-value ${ksColor}">${r.ks.toFixed(2)}</div><div class="kpi-sub"><span class="badge ${ksClass}">${r.ks>=1.5?'✓ Норма':r.ks>=1.2?'⚠ Граница':'✗ Дефицит'}</span></div></div>
+<div class="result-kpi"><div class="kpi-label">n₂ выходная</div><div class="kpi-value">${r.n2.toFixed(1)} <span style="font-size:var(--text-sm)">об/мин</span></div><div class="kpi-sub">i = ${r.i.toFixed(1)}</div></div>
+<div class="result-kpi"><div class="kpi-label">Ресурс L10h</div><div class="kpi-value ${l10Color}">${(r.l10_est/1000).toFixed(0)}k ч</div><div class="kpi-sub">Требуется: ${(r.life/1000).toFixed(0)}k ч</div></div>
+<div class="result-kpi"><div class="kpi-label">Масса редуктора</div><div class="kpi-value">${r.vm.mass} <span style="font-size:var(--text-sm)">кг</span></div><div class="kpi-sub">L: ${r.vm.l_min}…${r.vm.l_max} мм</div></div>
+<div class="result-kpi"><div class="kpi-label">Защита / Смазка</div><div class="kpi-value" style="font-size:var(--text-base)">${r.ip}</div><div class="kpi-sub">${r.lube}</div></div>
+</div>
+<div class="section-title">Загрузка подшипников</div>
+<div style="margin-bottom:var(--space-2);font-size:var(--text-sm);color:var(--muted)">L10h расчётный / требуемый</div>
+<div class="progress-bar-wrap"><div class="progress-bar-fill ${l10Cls}" style="width:${Math.min(100,r.l10_est/r.life*100).toFixed(0)}%"></div></div>
+<div style="font-size:var(--text-xs);color:var(--faint);margin-top:var(--space-1)">${r.l10_est.toLocaleString()} ч / ${r.life.toLocaleString()} ч требуемых</div>
+<div class="section-title">Соседние типоразмеры</div>
+<table class="data-table"><thead><tr><th>Модель</th><th>T₂_max, кНм</th><th>T₂_ном, кНм</th><th>Масса, кг</th><th>IEC Frame</th><th>Ks</th></tr></thead><tbody>
+${nearby.map(v=>{const ks_v=(v.t2_max/r.t2_design).toFixed(2);const ok=v.t2_max>=r.t2_design;return `<tr class="${v.name===r.vm.name?'highlight':''}"><td>${v.name}</td><td>${v.t2_max}</td><td>${v.t2_nom}</td><td>${v.mass}</td><td>${v.iec}</td><td style="color:var(--${ok?'success':'error'})">${ks_v}</td></tr>`;}).join('')}
+</tbody></table>
+<div class="btn-actions"><button class="btn btn-primary" onclick="goStep(3)">Расчёт муфты →</button><button class="btn btn-ghost" onclick="goStep(1)">← Изменить параметры</button></div>
+</div>`;
+document.getElementById('results2').innerHTML=html;
+document.getElementById('results2').classList.add('visible');
+document.getElementById('results2-empty').classList.add('hidden');
+}
+
+function renderStep3(r){
+const Kp=MOTOR_KP[r.mtype]||6.5;
+const T_nom_fast=r.power?(r.power*9550/r.n1):(r.t2/r.i*1000);
+const T_peak=T_nom_fast*Kp;
+const kuVal=KU_MATRIX[r.ind]?.[r.lt]||1.5;
+const T_design_coupling=T_peak*kuVal;
+const T_design_kNm=T_design_coupling/1000;
+const suitable=COUPLING_TYPES.filter(c=>c.t2_range[0]<=T_nom_fast/1000&&c.t2_range[1]>=T_nom_fast/1000&&c.ku_max>=kuVal&&(c.industries.includes(r.ind)||c.industries.includes('general')));
+const recommended=suitable.length>0?suitable[0]:COUPLING_TYPES[0];
+const T_fast_kNm=(T_nom_fast/1000).toFixed(2);
+const dMax=Math.max(r.dMot||r.n1/50,r.dRed||r.n1/50,50);
+const couplingD=Math.round(dMax*2.8/10)*10;
+const couplingL=Math.round(dMax*3.5/10)*10;
+const couplingMass=Math.round((couplingD/1000)**3*7850*0.35);
+const hasRadialMisalign=!r.dMot||!r.dRed;
+const suitHtml=suitable.length>0?suitable.map((c)=>{const isRec=c.id===recommended.id;return `<div class="coupling-card ${isRec?'recommended':''}"><div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-2)"><div><div class="coupling-name">${c.name} ${isRec?'<span class="badge badge-ok" style="font-size:var(--text-xs)">✓ Рекомендована</span>':''}</div><div class="coupling-type">${c.type} · ${c.standard}</div></div><span class="badge ${isRec?'badge-ok':'badge-info'}">${c.damping} демпфирование</span></div><div class="coupling-specs"><div class="spec-item"><span class="spec-label">T_ном (быстроход)</span><span class="spec-val">${T_fast_kNm} кНм</span></div><div class="spec-item"><span class="spec-label">T_пиковый расч.</span><span class="spec-val">${T_design_kNm.toFixed(2)} кНм</span></div><div class="spec-item"><span class="spec-label">Макс. радиальная Δr</span><span class="spec-val">≤ ${c.misalign_radial} мм</span></div><div class="spec-item"><span class="spec-label">Макс. угловая Δα</span><span class="spec-val">≤ ${c.misalign_angular}°</span></div><div class="spec-item"><span class="spec-label">Диапазон температур</span><span class="spec-val">${c.temp[0]}…${c.temp[1]}°C</span></div><div class="spec-item"><span class="spec-label">Ku_max (нагрузка)</span><span class="spec-val">${c.ku_max}</span></div></div><div class="coupling-pros">${c.pros.map(p=>`<span class="pros-tag">${p}</span>`).join('')}</div><div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--muted);border-top:1px solid var(--divider);padding-top:var(--space-2)">💡 ${c.note}</div></div>`;}).join(''):`<div class="alert alert-warn">⚠️ Нет подходящих муфт по введённым параметрам. Рекомендуйте нестандартное исполнение или уточните данные.</div>`;
+const html=`<div class="card">
+<h2 class="card-title"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V12M12 12V2M12 12H2M12 12H22"/><circle cx="12" cy="12" r="3"/></svg>Расчёт соединительной муфты</h2>
+<div class="coupling-diagram"><svg viewBox="0 0 640 120" xmlns="http://www.w3.org/2000/svg">
+<rect x="10" y="20" width="120" height="80" rx="6" fill="var(--offset)" stroke="var(--border)" stroke-width="1.5"/>
+<text x="70" y="58" text-anchor="middle" font-size="11" fill="var(--muted)">Двигатель</text>
+<text x="70" y="74" text-anchor="middle" font-size="10" fill="var(--primary)">${r.power||'P'} кВт</text>
+<text x="70" y="88" text-anchor="middle" font-size="10" fill="var(--faint)">${Math.round(r.n1)} об/мин</text>
+<rect x="130" y="54" width="60" height="12" rx="2" fill="var(--faint)"/>
+<text x="160" y="45" text-anchor="middle" font-size="9" fill="var(--faint)">d₁=${r.dMot||'?'} мм</text>
+<rect x="190" y="30" width="80" height="60" rx="8" fill="var(--primary-hi)" stroke="var(--primary)" stroke-width="2"/>
+<text x="230" y="62" text-anchor="middle" font-size="10" fill="var(--primary)" font-weight="600">МУФТА</text>
+<text x="230" y="76" text-anchor="middle" font-size="9" fill="var(--primary)">${recommended.id==='elastic_pin'?'МУВП':recommended.id==='disc'?'Дисковая':recommended.id==='gear'?'Зубчатая':recommended.id==='jaw'?'Кулачк.':recommended.id==='hydraulic'?'Гидро':'Кардан'}</text>
+<rect x="270" y="54" width="60" height="12" rx="2" fill="var(--faint)"/>
+<text x="300" y="45" text-anchor="middle" font-size="9" fill="var(--faint)">d₂=${r.dRed||'?'} мм</text>
+<rect x="330" y="15" width="140" height="90" rx="8" fill="var(--offset)" stroke="var(--border)" stroke-width="1.5"/>
+<text x="400" y="55" text-anchor="middle" font-size="11" fill="var(--muted)">${r.vm.name}</text>
+<text x="400" y="70" text-anchor="middle" font-size="10" fill="var(--primary)">i=${r.i.toFixed(1)}</text>
+<text x="400" y="85" text-anchor="middle" font-size="10" fill="var(--faint)">T₂=${r.t2} кНм</text>
+<rect x="470" y="52" width="80" height="16" rx="3" fill="var(--faint)"/>
+<text x="510" y="45" text-anchor="middle" font-size="9" fill="var(--faint)">Ø${r.vm.pcd} мм</text>
+<rect x="550" y="25" width="80" height="70" rx="6" fill="var(--offset)" stroke="var(--border)" stroke-width="1.5"/>
+<text x="590" y="62" text-anchor="middle" font-size="10" fill="var(--muted)">Рабочий</text>
+<text x="590" y="76" text-anchor="middle" font-size="10" fill="var(--muted)">орган</text>
+<path d="M215 8 L245 8" stroke="var(--warning)" stroke-width="1.5" stroke-dasharray="4,2"/>
+<text x="230" y="7" text-anchor="middle" font-size="8" fill="var(--warning)">T_пик=${T_design_kNm.toFixed(1)} кНм</text>
+</svg></div>
+<div class="result-grid">
+<div class="result-kpi"><div class="kpi-label">T_ном (быстроход)</div><div class="kpi-value">${T_fast_kNm} <span style="font-size:var(--text-sm)">кНм</span></div><div class="kpi-sub">P=${r.power||'—'} кВт, n₁=${Math.round(r.n1)} об/мин</div></div>
+<div class="result-kpi"><div class="kpi-label">T_пиковый (пуск)</div><div class="kpi-value kpi-warn">${(T_peak/1000).toFixed(2)} <span style="font-size:var(--text-sm)">кНм</span></div><div class="kpi-sub">T_ном × Кп(${Kp}) = ${MOTOR_NAMES[r.mtype]||'АД'}</div></div>
+<div class="result-kpi"><div class="kpi-label">T_расч. муфты</div><div class="kpi-value">${T_design_kNm.toFixed(2)} <span style="font-size:var(--text-sm)">кНм</span></div><div class="kpi-sub">T_пик × Ku(${kuVal})</div></div>
+<div class="result-kpi"><div class="kpi-label">Ориент. Ø муфты</div><div class="kpi-value">${couplingD} <span style="font-size:var(--text-sm)">мм</span></div><div class="kpi-sub">L≈${couplingL} мм, m≈${couplingMass} кг</div></div>
+</div>
+${hasRadialMisalign?`<div class="alert alert-info">ℹ️ Диаметры валов не указаны — ориентировочные размеры муфты рассчитаны по n₁. Для точного подбора укажите d₁ и d₂ на Шаге 1.</div>`:''}
+<div class="section-title">Подходящие типы муфт — отрасль: ${getIndName(r.ind)}</div>
+${suitHtml}
+<div class="section-title">Требования к монтажу муфты</div>
+<table class="data-table"><thead><tr><th>Параметр</th><th>Значение</th><th>Метод контроля</th></tr></thead><tbody>
+<tr><td>Радиальное биение вала двигателя</td><td>≤ 0,03 мм</td><td>Индикатор ИЧ-10</td></tr>
+<tr><td>Торцевое биение фланца</td><td>≤ 0,05 мм</td><td>Индикатор ИЧ-10</td></tr>
+<tr><td>Соосность (радиальная несоосность)</td><td>≤ ${recommended.misalign_radial} мм</td><td>Лазерный центратор</td></tr>
+<tr><td>Угловая несоосность</td><td>≤ ${recommended.misalign_angular}°</td><td>Лазерный центратор</td></tr>
+<tr><td>Осевой зазор (тепловое расширение)</td><td>1…3 мм</td><td>Щуп</td></tr>
+<tr><td>Момент затяжки болтов фланца</td><td>По ГОСТ 52643 кл. пр. 8.8</td><td>Динамометрический ключ</td></tr>
+<tr><td>Балансировка (n₁ > 1500 об/мин)</td><td>G6.3 по ISO 1940-1</td><td>Балансировочный стенд</td></tr>
+</tbody></table>
+<div class="btn-actions"><button class="btn btn-primary" onclick="exportReportPDF()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Экспорт отчёта ТКП в PDF</button><button class="btn btn-ghost" onclick="goStep(1)">← Изменить параметры</button><button class="btn btn-ghost" onclick="goStep(2)">← Результат редуктора</button></div>
+</div>`;
+document.getElementById('results3').innerHTML=html;
+document.getElementById('results3').classList.add('visible');
+document.getElementById('results3-empty').classList.add('hidden');
+}
+
+function getIndName(id){const map={agro:'Агросектор',oilgas:'Нефтегаз нас.',offshore:'Нефтегаз мор.',mining:'Горное оборуд.',chem:'Нефтехимия',wind:'ВЭУ',general:'Общепром'};return map[id]||id;}
+
+function goStep(n){
+document.querySelectorAll('.step-panel').forEach((p,i)=>{p.classList.toggle('active',i+1===n);});
+document.querySelectorAll('.step-tab').forEach((t,i)=>{t.classList.remove('active','done');if(i+1===n)t.classList.add('active');else if(i+1<n&&calcResult)t.classList.add('done');});
+window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function resetAll(){
+['t2','n1','n2','ratio','lifetime','power','d_motor','d_reducer'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+['industry','load_type','temp','motor_type'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
+calcResult=null;
+document.getElementById('results2').classList.remove('visible');
+document.getElementById('results2-empty').classList.remove('hidden');
+document.getElementById('results3').classList.remove('visible');
+document.getElementById('results3-empty').classList.remove('hidden');
+goStep(1);
+}
+
+(function(){
+const btn=document.querySelector('[data-theme-toggle]');
+const root=document.documentElement;
+let theme='dark';
+root.setAttribute('data-theme',theme);
+function updateIcon(){if(!btn)return;btn.innerHTML=theme==='dark'?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>':'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';}
+if(btn)btn.addEventListener('click',()=>{theme=theme==='dark'?'light':'dark';root.setAttribute('data-theme',theme);updateIcon();});
+updateIcon();
+})();
+</script>
+</body>
+</html>
